@@ -4,21 +4,23 @@ using Microsoft.Extensions.Options;
 using NATS.Client.JetStream;
 using NATS.Client.ObjectStore;
 using Orleans.Configuration;
+using Orleans.Nats.Models;
 using Orleans.Runtime;
 using Orleans.Storage;
 
-namespace Orleans.Nats.Implementations;
+namespace Orleans.Nats.Implementations.GrainStorage;
 
-sealed class NatsGrainStorage(INatsObjContext           context,
+sealed class NatsGrainStorage(NatsContextWrapper        wrapper,
+                              NatsOrleansOptions        options,
                               IOptions<ClusterOptions>  clusterOptions,
                               ILogger<NatsGrainStorage> logger) : IGrainStorage, ILifecycleParticipant<ISiloLifecycle>
 {
-    readonly string bucketId = "Orleans-" + clusterOptions.Value.ClusterId + '-' + clusterOptions.Value.ServiceId + "-Grains";
+    readonly string bucketId = options.GrainStorageBucketName(clusterOptions.Value.ClusterId, clusterOptions.Value.ServiceId);
 
     public async Task ReadStateAsync<T>(string stateName, GrainId grainId, IGrainState<T> grainState)
     {
         var store      = await getStore();
-        var objectName = grainId.GetObjectNormalizedName<T>(stateName);
+        var objectName = grainId.GetGrainNormalizedName<T>(stateName);
         logger.LogDebug($"{nameof(ReadStateAsync)}: Object {grainState} ({grainId}) => {objectName}");
         try
         {
@@ -45,7 +47,7 @@ sealed class NatsGrainStorage(INatsObjContext           context,
     public async Task WriteStateAsync<T>(string stateName, GrainId grainId, IGrainState<T> grainState)
     {
         var store      = await getStore();
-        var objectName = grainId.GetObjectNormalizedName<T>(stateName);
+        var objectName = grainId.GetGrainNormalizedName<T>(stateName);
         logger.LogDebug($"{nameof(WriteStateAsync)}: Object {grainState} ({grainId}) => {objectName}");
 
         var bytes = JsonSerializer.SerializeToUtf8Bytes(grainState.State);
@@ -55,7 +57,7 @@ sealed class NatsGrainStorage(INatsObjContext           context,
     public async Task ClearStateAsync<T>(string stateName, GrainId grainId, IGrainState<T> grainState)
     {
         var store      = await getStore();
-        var objectName = grainId.GetObjectNormalizedName<T>(stateName);
+        var objectName = grainId.GetGrainNormalizedName<T>(stateName);
         logger.LogDebug($"{nameof(ClearStateAsync)}: Object {grainState} ({grainId}) => {objectName}");
         try
         {
@@ -70,12 +72,12 @@ sealed class NatsGrainStorage(INatsObjContext           context,
     {
         try
         {
-            return await context.GetObjectStoreAsync(bucketId);
+            return await wrapper.Context.GetObjectStoreAsync(bucketId);
         }
         catch (NatsJSApiException e) when (e.Error.Code == 404)
         {
-            await context.CreateObjectStoreAsync(bucketId);
-            return await context.GetObjectStoreAsync(bucketId);
+            await wrapper.Context.CreateObjectStoreAsync(bucketId);
+            return await wrapper.Context.GetObjectStoreAsync(bucketId);
         }
         catch (Exception e)
         {

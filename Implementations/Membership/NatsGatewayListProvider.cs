@@ -4,7 +4,7 @@ using Orleans.Messaging;
 using Orleans.Nats.Interfaces;
 using Orleans.Runtime;
 
-namespace Orleans.Nats.Implementations;
+namespace Orleans.Nats.Implementations.Membership;
 
 sealed class NatsGatewayListProvider(INatsMembershipService   membershipService,
                                      IOptions<GatewayOptions> gatewayOptions) : IGatewayListProvider

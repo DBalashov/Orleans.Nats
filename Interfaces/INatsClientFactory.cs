@@ -1,8 +1,8 @@
-﻿using NATS.Client.ObjectStore;
+﻿using Orleans.Nats.Models;
 
 namespace Orleans.Nats.Interfaces;
 
 interface INatsClientFactory
 {
-    INatsObjContext CreateContext();
+    NatsContextWrapper CreateContext();
 }

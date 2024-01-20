@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using Orleans.Runtime;
 
-namespace Orleans.Nats.Helpers;
+namespace Orleans.Nats.Implementations.Membership;
 
 static class SerializableMembershipTableExtenders
 {

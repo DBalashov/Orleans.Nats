@@ -2,15 +2,16 @@
 using NATS.Client.JetStream;
 using NATS.Client.ObjectStore;
 using Orleans.Nats.Interfaces;
+using Orleans.Nats.Models;
 
 namespace Orleans.Nats.Implementations;
 
-sealed class NatsClientFactory(NatsOpts options) : INatsClientFactory
+sealed class NatsClientFactory(NatsOrleansOptions options) : INatsClientFactory
 {
-    public INatsObjContext CreateContext()
+    public NatsContextWrapper CreateContext()
     {
-        var client = new NatsConnection(options);
+        var client = new NatsConnection(options.Options);
         var js     = new NatsJSContext(client);
-        return new NatsObjContext(js);
+        return new NatsContextWrapper(new NatsObjContext(js));
     }
 }

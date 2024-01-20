@@ -1,25 +1,24 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NATS.Client.ObjectStore;
-using Orleans.Nats.Helpers;
 using Orleans.Configuration;
 using Orleans.Nats.Interfaces;
+using Orleans.Nats.Models;
 
-namespace Orleans.Nats.Implementations;
+namespace Orleans.Nats.Implementations.Membership;
 
-sealed class NatsMembershipService(INatsObjContext              context,
-                                   ILogger<NatsMembershipTable> logger,
-                                   IOptions<ClusterOptions>     clusterOptions) : INatsMembershipService
+sealed class NatsMembershipService(NatsContextWrapper             wrapper,
+                                   NatsOrleansOptions             options,
+                                   ILogger<NatsMembershipService> logger,
+                                   IOptions<ClusterOptions>       clusterOptions) : INatsMembershipService
 {
-    const string objectName = "MembershipTableData";
-
-    readonly string bucketId = "Orleans-" + clusterOptions.Value.ClusterId + '-' + clusterOptions.Value.ServiceId + "-Membership";
+    readonly string bucketId = options.MembershipBucketName(clusterOptions.Value.ClusterId, clusterOptions.Value.ServiceId);
 
     public async Task Init() =>
-        await context.CreateObjectStoreAsync(bucketId);
+        await wrapper.Context.CreateObjectStoreAsync(bucketId);
 
     public async Task Cleanup() =>
-        await context.DeleteObjectStore(bucketId, CancellationToken.None);
+        await wrapper.Context.DeleteObjectStore(bucketId, CancellationToken.None);
 
     public async Task<MembershipTableData> Read()
     {
@@ -27,8 +26,8 @@ sealed class NatsMembershipService(INatsObjContext              context,
         {
             logger.LogDebug($"{nameof(Read)} called.");
 
-            var store = await context.GetObjectStoreAsync(bucketId);
-            var bytes = await store.GetBytesAsync(objectName);
+            var store = await wrapper.Context.GetObjectStoreAsync(bucketId);
+            var bytes = await store.GetBytesAsync(options.MembershipObjectName);
             return bytes.ToMembershipTableData();
         }
         catch (NatsObjNotFoundException)
@@ -67,10 +66,10 @@ sealed class NatsMembershipService(INatsObjContext              context,
 
     async Task<MembershipTableData> read()
     {
-        var store = await context.GetObjectStoreAsync(bucketId);
+        var store = await wrapper.Context.GetObjectStoreAsync(bucketId);
         try
         {
-            var bytes     = await store.GetBytesAsync(objectName);
+            var bytes     = await store.GetBytesAsync(options.MembershipObjectName);
             var tableData = bytes.ToMembershipTableData();
             return tableData;
         }
@@ -82,9 +81,9 @@ sealed class NatsMembershipService(INatsObjContext              context,
 
     async Task write(MembershipTableData tableData)
     {
-        var store      = await context.GetObjectStoreAsync(bucketId);
+        var store      = await wrapper.Context.GetObjectStoreAsync(bucketId);
         var serialized = tableData.ToBytes();
-        await store.PutAsync(objectName, serialized);
+        await store.PutAsync(options.MembershipObjectName, serialized);
     }
 
     #endregion
