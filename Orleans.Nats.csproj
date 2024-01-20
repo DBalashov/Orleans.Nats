@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>Orleans.Nats</PackageId>
+        <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+        <Version>2024.1.20.0</Version>
+        <AssemblyVersion>$(Version)</AssemblyVersion>
+        <FileVersion>$(Version)</FileVersion>
+        <Description>Orleans.Nats. MIT License</Description>
+        <Authors>Denis Balashov</Authors>
+        <RepositoryUrl>https://github.com/DBalashov/Orleans.Nats</RepositoryUrl>
+        <Copyright>Denis Balashov</Copyright>
+        <PackageTags>orleans, nats, clustering, persistence, c#</PackageTags>
+        <RootNamespace>Orleans.Nats</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Orleans.Core" Version="8.0.0"/>
+        <PackageReference Include="Microsoft.Orleans.Runtime" Version="8.0.0" />
+        <PackageReference Include="NATS.Client.Core" Version="2.0.3"/>
+        <PackageReference Include="NATS.Client.JetStream" Version="2.0.3"/>
+        <PackageReference Include="NATS.Client.ObjectStore" Version="2.0.3"/>
+    </ItemGroup>
+
+</Project>
