@@ -49,7 +49,7 @@ new HostBuilder()
                       {
                           ...
                           var natsOptions = new NatsOpts() {Url = "nats://some-nats-host:4222"};
-                          c.UseNatsClustering(new NatsClusteringOptions(natsOptions)~~~~);
+                          c.UseNatsClustering(new NatsClusteringOptions(natsOptions));
                       })
     .Build();
 
