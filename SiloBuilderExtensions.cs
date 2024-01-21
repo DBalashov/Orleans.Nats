@@ -16,15 +16,16 @@ namespace Orleans.Nats;
 
 public static class SiloBuilderExtensions
 {
-    public static ISiloBuilder UseNatsClient(this ISiloBuilder builder, NatsOrleansOptions opts) =>
-        builder.ConfigureServices(services => services.AddSingleton(opts))
-               .ConfigureServices(services => services.AddSingleton<INatsClientFactory, NatsClientFactory>())
-               .ConfigureServices(services => services.AddSingleton<NatsContextWrapper>(sp => sp.GetRequiredService<INatsClientFactory>().CreateContext()));
-
     #region Clustering
 
-    public static ISiloBuilder UseNatsClustering(this ISiloBuilder builder) =>
-        builder.ConfigureServices(services => services.AddNatsMembershipTable());
+    public static ISiloBuilder UseNatsClustering(this ISiloBuilder builder, NatsClusteringOptions? options = null) =>
+        builder
+           .ConfigureServices(services =>
+                              {
+                                  services.AddSingleton<NatsClusteringOptions>(options ?? NatsClusteringOptions.Default);
+                                  services.AddSingleton<NatsContextClusteringWrapper>();
+                                  services.AddNatsMembershipTable();
+                              });
 
     public static IServiceCollection AddNatsMembershipTable(this IServiceCollection services) =>
         services.AddSingleton<INatsMembershipService, NatsMembershipService>()
@@ -34,14 +35,17 @@ public static class SiloBuilderExtensions
 
     #region Storage
 
-    public static ISiloBuilder AddNatsGrainStorageAsDefault(this ISiloBuilder builder) =>
-        builder.ConfigureServices(services => services.AddNatsGrainStorage<IGrainStorage>(ProviderConstants.DEFAULT_STORAGE_PROVIDER_NAME));
+    public static ISiloBuilder AddNatsGrainStorageAsDefault(this ISiloBuilder builder, NatsGrainStorageOptions? options = null) =>
+        builder.ConfigureServices(services => services.AddNatsGrainStorage<IGrainStorage>(ProviderConstants.DEFAULT_STORAGE_PROVIDER_NAME, options));
 
-    public static ISiloBuilder AddNatsGrainStorage(this ISiloBuilder builder, string name) =>
-        builder.ConfigureServices(services => services.AddNatsGrainStorage<IGrainStorage>(name));
+    public static ISiloBuilder AddNatsGrainStorage(this ISiloBuilder builder, string name, NatsGrainStorageOptions? options) =>
+        builder.ConfigureServices(services => services.AddNatsGrainStorage<IGrainStorage>(name, options));
 
-    public static IServiceCollection AddNatsGrainStorage<T>(this IServiceCollection services, string name) where T : IGrainStorage
+    public static IServiceCollection AddNatsGrainStorage<T>(this IServiceCollection services, string name, NatsGrainStorageOptions? options) where T : IGrainStorage
     {
+        services.AddSingleton<NatsGrainStorageOptions>(options ?? NatsGrainStorageOptions.Default);
+        services.AddSingleton<NatsContextGrainStorageWrapper>();
+
         services.AddKeyedSingleton<IGrainStorage, NatsGrainStorage>(name);
 
         // Check if it is the default implementation
@@ -63,10 +67,12 @@ public static class SiloBuilderExtensions
 
     #region Reminders
 
-    public static ISiloBuilder UseNatsReminders(this ISiloBuilder builder) =>
+    public static ISiloBuilder UseNatsReminders(this ISiloBuilder builder, NatsRemindersOptions? options = null) =>
         builder.ConfigureServices(services =>
                                   {
                                       services.AddReminders();
+                                      services.AddSingleton<NatsRemindersOptions>(options ?? NatsRemindersOptions.Default);
+                                      services.AddSingleton<NatsContextRemindersWrapper>();
                                       services.AddSingleton<INatsReminderService, NatsReminderService>();
                                       services.AddSingleton<IReminderTable, NatsRemindersTable>();
                                   });

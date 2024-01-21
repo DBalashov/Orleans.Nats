@@ -14,8 +14,11 @@ sealed class NatsMembershipTable(INatsMembershipService membershipService) : IMe
         await membershipService.Cleanup();
 
     /// <inheritdoc />
-    public async Task<MembershipTableData> ReadRow(SiloAddress key) => // ?
-        await membershipService.Read();
+    public async Task<MembershipTableData> ReadRow(SiloAddress key)
+    {
+        var r = await membershipService.Read();
+        return new MembershipTableData(r.Members.Where(p => p.Item1.SiloAddress.CompareTo(key) == 0).ToList(), r.Version);
+    }
 
     /// <inheritdoc />
     public async Task<MembershipTableData> ReadAll() =>
@@ -27,7 +30,7 @@ sealed class NatsMembershipTable(INatsMembershipService membershipService) : IMe
                                                 {
                                                     var memberList = orig.Members.ToList();
                                                     memberList.Add(new Tuple<MembershipEntry, string>(entry, Extenders.CreateEtag()));
-                                                    return (new MembershipTableData(memberList, tableVersion), true);
+                                                    return new ReadModifyWriteResult(new MembershipTableData(memberList, tableVersion), true);
                                                 });
 
     /// <inheritdoc />
@@ -46,7 +49,7 @@ sealed class NatsMembershipTable(INatsMembershipService membershipService) : IMe
                                                         memberList.Add(new Tuple<MembershipEntry, string>(entry, etag));
                                                     }
 
-                                                    return (new MembershipTableData(memberList, tableVersion), true);
+                                                    return new ReadModifyWriteResult(new MembershipTableData(memberList, tableVersion), true);
                                                 });
 
     /// <inheritdoc />
@@ -57,8 +60,8 @@ sealed class NatsMembershipTable(INatsMembershipService membershipService) : IMe
                                                 {
                                                     var newMembers = orig.Members.Where(p => p.Item1.Status != SiloStatus.Active && p.Item1.IAmAliveTime < beforeUtc).ToList();
                                                     var newVersion = new TableVersion(orig.Version.Version + 1, orig.Version.VersionEtag);
-                                                    return (new MembershipTableData(newMembers, newVersion),
-                                                            orig.Members.Count != newMembers.Count);
+                                                    return new ReadModifyWriteResult(new MembershipTableData(newMembers, newVersion),
+                                                                                     orig.Members.Count != newMembers.Count);
                                                 });
     }
 
@@ -71,9 +74,9 @@ sealed class NatsMembershipTable(INatsMembershipService membershipService) : IMe
                                                     {
                                                         foundedEntry.Item1.IAmAliveTime = entry.IAmAliveTime;
                                                         var newVersion = new TableVersion(orig.Version.Version + 1, orig.Version.VersionEtag);
-                                                        return (new MembershipTableData(orig.Members.ToList(), newVersion), true);
+                                                        return new ReadModifyWriteResult(new MembershipTableData(orig.Members.ToList(), newVersion), true);
                                                     }
 
-                                                    return (orig, false);
+                                                    return new ReadModifyWriteResult(orig, false);
                                                 });
 }

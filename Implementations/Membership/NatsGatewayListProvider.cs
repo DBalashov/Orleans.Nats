@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using System.Net;
+using Microsoft.Extensions.Options;
 using Orleans.Configuration;
 using Orleans.Messaging;
 using Orleans.Nats.Interfaces;
@@ -20,6 +21,9 @@ sealed class NatsGatewayListProvider(INatsMembershipService   membershipService,
         var r = await membershipService.Read();
         return r.Members
                 .Where(x => x.Item1.Status == SiloStatus.Active && x.Item1.ProxyPort > 0)
-                .Select(x => x.Item1.ToGatewayUri()).ToList();
+                .Select(x => toGatewayUri(x.Item1)).ToList();
     }
+    
+    Uri toGatewayUri(MembershipEntry me) =>
+        SiloAddress.New(new IPEndPoint(me.SiloAddress.Endpoint.Address, me.ProxyPort), me.SiloAddress.Generation).ToGatewayUri();
 }

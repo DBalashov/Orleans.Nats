@@ -8,5 +8,7 @@ interface INatsMembershipService
 
     Task<MembershipTableData> Read();
 
-    Task<bool> ReadModifyWrite(Func<MembershipTableData, (MembershipTableData newTable, bool modified)> func);
+    Task<bool> ReadModifyWrite(Func<MembershipTableData, ReadModifyWriteResult> func);
 }
+
+public sealed record ReadModifyWriteResult(MembershipTableData NewTable, bool Modified);

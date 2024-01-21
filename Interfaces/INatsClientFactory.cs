@@ -1,8 +1,12 @@
-﻿using Orleans.Nats.Models;
+﻿using NATS.Client.ObjectStore;
 
 namespace Orleans.Nats.Interfaces;
 
-interface INatsClientFactory
+interface INatsContextWrapper
 {
-    NatsContextWrapper CreateContext();
+    INatsObjContext Context { get; }
+
+    Task<INatsObjStore> GetStore(string bucketId);
+
+    Task DeleteStore(string bucketId);
 }

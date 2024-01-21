@@ -10,27 +10,13 @@ static class SerializableReminderExtenders
     public static ReminderEntry ToEntry(this byte[] bytes)
     {
         var r = JsonSerializer.Deserialize<SerializableReminderEntry>(bytes)!;
-        return new ReminderEntry
-               {
-                   GrainId      = GrainId.Parse(r.GrainId),
-                   ReminderName = r.ReminderName,
-                   StartAt      = r.StartAt,
-                   Period       = r.Period,
-                   ETag         = r.ETag
-               };
+        return r.ToReminderEntry();
     }
 
     public static byte[] ToBytes(this ReminderEntry entry)
     {
         using var stm = new MemoryStream();
-        JsonSerializer.Serialize(stm, new SerializableReminderEntry()
-                                      {
-                                          ETag         = entry.ETag,
-                                          GrainId      = entry.GrainId.ToString(),
-                                          ReminderName = entry.ReminderName,
-                                          StartAt      = entry.StartAt,
-                                          Period       = entry.Period
-                                      });
+        JsonSerializer.Serialize(stm, new SerializableReminderEntry(entry));
         return stm.ToArray();
     }
 }
@@ -42,4 +28,28 @@ public class SerializableReminderEntry
     public DateTime StartAt      { get; set; }
     public TimeSpan Period       { get; set; }
     public string   ETag         { get; set; }
+
+    [Obsolete("For serialization/deserialization only", true)]
+    public SerializableReminderEntry()
+    {
+    }
+
+    public SerializableReminderEntry(ReminderEntry entry)
+    {
+        GrainId      = entry.GrainId.ToString();
+        ReminderName = entry.ReminderName;
+        StartAt      = entry.StartAt;
+        Period       = entry.Period;
+        ETag         = entry.ETag;
+    }
+
+    public ReminderEntry ToReminderEntry() =>
+        new()
+        {
+            GrainId      = Orleans.Runtime.GrainId.Parse(GrainId),
+            ReminderName = ReminderName,
+            StartAt      = StartAt,
+            Period       = Period,
+            ETag         = ETag
+        };
 }
